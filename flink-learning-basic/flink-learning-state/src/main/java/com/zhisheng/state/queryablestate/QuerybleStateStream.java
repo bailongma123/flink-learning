@@ -2,6 +2,7 @@ package com.zhisheng.state.queryablestate;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
 
@@ -15,22 +16,32 @@ import org.apache.flink.util.Collector;
 public class QuerybleStateStream {
     public static void main(String[] args) {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
         env.setParallelism(1);
 
+
 //        DataStreamSource<String> socket = env.socketTextStream("localhost", 9002);
-        env.socketTextStream("localhost", 9002)
-        .flatMap(new FlatMapFunction<String, ClimateLog>() {
-            @Override
-            public void flatMap(String value, Collector<ClimateLog> out) throws Exception {
-                try {
-                    String[] split = value.split(",");
-                    out.collect(new ClimateLog(split[0], split[1], Float.parseFloat(split[2]), Float.parseFloat(split[3])));
-                } catch (Exception e) {
-                    //如果数据有问题的话，允许把这条有问题的数据丢掉
-                    log.warn("解析 socket 数据异常, value = {}, err = {}", value, e.getMessage());
-                }
-            }
-        });
+        SingleOutputStreamOperator<ClimateLog> climateLogSingleOutputStreamOperator = env.socketTextStream("192.168.174.171", 9002)
+                .flatMap(new FlatMapFunction<String, ClimateLog>() {
+                    @Override
+                    public void flatMap(String value, Collector<ClimateLog> out) throws Exception {
+                        try {
+                            String[] split = value.split(",");
+                            out.collect(new ClimateLog(split[0], split[1], Float.parseFloat(split[2]), Float.parseFloat(split[3])));
+                            log.info("value = {}", value);
+                            log.info(out.toString());
+                        } catch (Exception e) {
+                            //如果数据有问题的话，允许把这条有问题的数据丢掉
+                            log.warn("解析 socket 数据异常, value = {}, err = {}", value, e.getMessage());
+                        }
+                    }
+                });
+        climateLogSingleOutputStreamOperator.print();
+        try {
+            env.execute("QuerybleStateStream");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 }

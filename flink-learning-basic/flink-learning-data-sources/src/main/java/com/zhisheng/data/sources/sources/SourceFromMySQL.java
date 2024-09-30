@@ -21,6 +21,7 @@ public class SourceFromMySQL extends RichSourceFunction<Student> {
 
     /**
      * open() 方法中建立连接，这样不用每次 invoke 的时候都要建立连接和释放连接。
+     * 初始化资源库
      *
      * @param parameters
      * @throws Exception
@@ -34,6 +35,25 @@ public class SourceFromMySQL extends RichSourceFunction<Student> {
                 "root123456");
         String sql = "select * from Student;";
         ps = this.connection.prepareStatement(sql);
+    }
+
+    /**
+     * DataStream 调用一次 run() 方法用来获取数据并进行操作
+     *
+     * @param ctx
+     * @throws Exception
+     */
+    @Override
+    public void run(SourceContext<Student> ctx) throws Exception {
+        ResultSet resultSet = ps.executeQuery();
+        while (resultSet.next()) {
+            Student student = new Student(
+                    resultSet.getInt("id"),
+                    resultSet.getString("name").trim(),
+                    resultSet.getString("password").trim(),
+                    resultSet.getInt("age"));
+            ctx.collect(student);
+        }
     }
 
     /**
@@ -52,24 +72,7 @@ public class SourceFromMySQL extends RichSourceFunction<Student> {
         }
     }
 
-    /**
-     * DataStream 调用一次 run() 方法用来获取数据
-     *
-     * @param ctx
-     * @throws Exception
-     */
-    @Override
-    public void run(SourceContext<Student> ctx) throws Exception {
-        ResultSet resultSet = ps.executeQuery();
-        while (resultSet.next()) {
-            Student student = new Student(
-                    resultSet.getInt("id"),
-                    resultSet.getString("name").trim(),
-                    resultSet.getString("password").trim(),
-                    resultSet.getInt("age"));
-            ctx.collect(student);
-        }
-    }
+
 
     @Override
     public void cancel() {
