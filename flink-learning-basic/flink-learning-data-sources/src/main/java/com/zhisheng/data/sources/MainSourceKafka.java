@@ -11,7 +11,11 @@ import java.util.Properties;
 /**
  * 利用 flink kafka 自带的 source 读取 kafka 里面的数据
  */
-public class Main {
+public class MainSourceKafka {
+    public static final String KAFKA_TOPIC = "flink-kafka-source-test";
+    public static final String KEY_DESERIALIZER_CLASS = "org.apache.kafka.common.serialization.StringDeserializer";
+    public static final String VALUE_DESERIALIZER_CLASS = "org.apache.kafka.common.serialization.StringDeserializer";
+
     public static void main(String[] args) throws Exception{
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(2);
@@ -20,13 +24,13 @@ public class Main {
         props.put("bootstrap.servers", "192.168.174.171:9092");
         props.put("zookeeper.connect", "192.168.174.171:2181");
         props.put("group.id", "metric-group");
-        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");  //key 反序列化
-        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("key.deserializer", KEY_DESERIALIZER_CLASS);  //key 反序列化
+        props.put("value.deserializer", VALUE_DESERIALIZER_CLASS);
 //        props.put("auto.offset.reset", "latest"); //value 反序列化
         props.put("auto.offset.reset", "earliest"); //value 反序列化
 
         DataStreamSource<String> dataStreamSource = env.addSource(new FlinkKafkaConsumer<>(
-                "flink-kafka-source-test",  //kafka topic
+                KAFKA_TOPIC,  //kafka topic
                 new SimpleStringSchema(),  // String 序列化
                 props)).setParallelism(1);
 
